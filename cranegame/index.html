@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Crane Game</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%230b0f14'/%3E%3Cpath d='M20 18h24v4H20zM31 22h2v14h-2zM24 36h16v8H24z' fill='%23e6edf3'/%3E%3C/svg%3E" />
+    <style>
+      html, body { margin: 0; padding: 0; height: 100%; background: #0b0f14; color: #e6edf3; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji; }
+      #app { position: fixed; inset: 0; }
+      .hud { position: fixed; left: 12px; top: 12px; background: rgba(0,0,0,0.45); padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 8px 24px rgba(0,0,0,0.35); }
+      .hud h1 { margin: 0 0 6px; font-size: 16px; }
+      .hud p { margin: 2px 0; font-size: 13px; opacity: 0.9; }
+      .btn { display: inline-block; margin-top: 6px; padding: 6px 10px; font-size: 13px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); color: #e6edf3; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div class="hud">
+      <h1>크레인 게임</h1>
+      <p id="hud-info">이동: WASD / 방향키 · 집게: Space</p>
+      <p id="hud-status">점수: <span id="score">0</span> · 최고점: <span id="high">0</span> · 남은시간: <span id="time">60</span>s · FPS: <span id="fps">0</span></p>
+      <p id="hud-coins">코인: <span id="coins">0</span></p>
+      <p id="hud-diff">난이도: 
+        <select id="difficulty">
+          <option value="easy">Easy</option>
+          <option value="normal" selected>Normal</option>
+          <option value="hard">Hard</option>
+        </select>
+      </p>
+      <p><label><input type="checkbox" id="mute" /> 사운드 끄기</label></p>
+      <div style="margin-top:6px;border-top:1px dashed rgba(255,255,255,0.15);padding-top:6px;">
+        <p style="margin:0 0 4px 0">옵션</p>
+        <p style="margin:0"><label><input type="checkbox" id="opt-shadows" checked /> 그림자</label></p>
+        <p style="margin:0"><label><input type="checkbox" id="opt-particles" checked /> 파티클</label></p>
+        <p style="margin:0"><label><input type="checkbox" id="opt-minigrid" /> 미니맵 그리드</label></p>
+      </div>
+      <button id="btn-insert" class="btn">코인 투입</button>
+      <button id="btn-start" class="btn">시작</button>
+      <button id="btn-pause" class="btn">일시정지</button>
+      <button id="btn-cam" class="btn">카메라 전환</button>
+      <button id="btn-help" class="btn">도움말</button>
+      <button id="btn-reset-high" class="btn">최고점 초기화</button>
+      <button id="btn-record" class="btn">녹화</button>
+      <button id="btn-play" class="btn">재생</button>
+      <button id="btn-save-replay" class="btn">저장</button>
+      <button id="btn-load-replay" class="btn">불러오기</button>
+      <div style="margin-top:4px;">
+        <label>속도: </label>
+        <select id="replay-speed" style="font-size:12px;padding:2px;">
+          <option value="0.5">0.5x</option>
+          <option value="1" selected>1x</option>
+          <option value="2">2x</option>
+        </select>
+      </div>
+      <button id="reset" class="btn">리셋</button>
+    </div>
+    <div id="touch-controls" style="position:fixed;right:12px;bottom:12px;display:flex;gap:8px;align-items:center;">
+      <div style="display:grid;grid-template-columns:40px 40px;grid-template-rows:40px 40px;gap:6px;">
+        <button id="btn-up" class="btn" style="grid-column:1/span 2">▲</button>
+        <button id="btn-left" class="btn">◀</button>
+        <button id="btn-right" class="btn">▶</button>
+      </div>
+      <button id="btn-grab" class="btn">GRAB</button>
+    </div>
+    <div id="overlay" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);color:#e6edf3;font-size:24px;font-weight:600;">
+      <div style="background:rgba(0,0,0,0.5);padding:16px 20px;border-radius:10px;border:1px solid rgba(255,255,255,0.08);">
+        <div style="margin-bottom:8px">게임 종료</div>
+        <div style="font-size:16px;font-weight:400;opacity:0.9">코인을 투입하고 시작을 눌러주세요</div>
+      </div>
+    </div>
+    <div id="instructions" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);color:#e6edf3;z-index:1000;">
+      <div style="background:rgba(0,0,0,0.8);padding:20px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);max-width:500px;text-align:center;">
+        <h2 style="margin:0 0 16px 0;color:#ffd166;">크레인 게임 조작법</h2>
+        <div style="text-align:left;line-height:1.6;">
+          <p><strong>이동:</strong> WASD 또는 방향키</p>
+          <p><strong>집게:</strong> Space (누르면 내려가며 닫힘, 떼면 올라가며 열림)</p>
+          <p><strong>목표:</strong> 오른쪽 출구로 경품을 넣어 점수 획득</p>
+          <p><strong>난이도:</strong> Easy(90초) / Normal(60초) / Hard(45초)</p>
+          <p><strong>모바일:</strong> 화면 우하단 터치 버튼 사용</p>
+        </div>
+        <button id="close-instructions" class="btn" style="margin-top:16px;">닫기</button>
+      </div>
+    </div>
+    <script type="module" src="/web/main.js"></script>
+  </body>
+</html>
+
+
