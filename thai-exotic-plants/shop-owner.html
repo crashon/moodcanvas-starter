@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>샵 오너 대시보드 - Thai Exotic Plants</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-gray-100">
+    <!-- Sidebar -->
+    <div class="flex h-screen">
+        <aside class="w-64 bg-green-800 text-white">
+            <div class="p-6">
+                <h1 class="text-2xl font-bold mb-8">
+                    <i class="fas fa-store"></i> 샵 오너
+                </h1>
+                <nav class="space-y-2">
+                    <a href="#dashboard" class="nav-link active flex items-center space-x-3 p-3 rounded hover:bg-green-700 transition">
+                        <i class="fas fa-chart-line"></i>
+                        <span>대시보드</span>
+                    </a>
+                    <a href="#my-shop" class="nav-link flex items-center space-x-3 p-3 rounded hover:bg-green-700 transition">
+                        <i class="fas fa-store"></i>
+                        <span>내 샵</span>
+                    </a>
+                    <a href="#products" class="nav-link flex items-center space-x-3 p-3 rounded hover:bg-green-700 transition">
+                        <i class="fas fa-box"></i>
+                        <span>상품 관리</span>
+                    </a>
+                    <a href="#inventory" class="nav-link flex items-center space-x-3 p-3 rounded hover:bg-green-700 transition">
+                        <i class="fas fa-warehouse"></i>
+                        <span>재고 관리</span>
+                    </a>
+                    <a href="#sales" class="nav-link flex items-center space-x-3 p-3 rounded hover:bg-green-700 transition">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>매출 통계</span>
+                    </a>
+                    <a href="../index.html" class="flex items-center space-x-3 p-3 rounded hover:bg-green-700 transition">
+                        <i class="fas fa-home"></i>
+                        <span>홈페이지로</span>
+                    </a>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto">
+            <!-- Header -->
+            <header class="bg-white shadow-sm p-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">샵 오너 대시보드</h2>
+                        <p class="text-gray-600" id="shop-name-display">내 샵</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button class="relative">
+                            <i class="fas fa-bell text-xl text-gray-600"></i>
+                            <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">2</span>
+                        </button>
+                        <div class="flex items-center space-x-2">
+                            <i class="fas fa-user-circle text-2xl text-gray-600"></i>
+                            <span class="text-gray-700" id="owner-name">샵 오너</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Section -->
+            <section id="dashboard-section" class="p-6">
+                <h3 class="text-xl font-bold mb-6">대시보드</h3>
+                
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm">내 샵 매출</p>
+                                <p class="text-2xl font-bold text-green-600" id="shop-revenue">0 THB</p>
+                            </div>
+                            <i class="fas fa-dollar-sign text-3xl text-green-200"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm">내 상품</p>
+                                <p class="text-2xl font-bold text-blue-600" id="shop-products">0</p>
+                            </div>
+                            <i class="fas fa-box text-3xl text-blue-200"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm">판매 주문</p>
+                                <p class="text-2xl font-bold text-purple-600" id="shop-orders">0</p>
+                            </div>
+                            <i class="fas fa-shopping-cart text-3xl text-purple-200"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm">재고 부족</p>
+                                <p class="text-2xl font-bold text-red-600" id="low-stock">0</p>
+                            </div>
+                            <i class="fas fa-exclamation-triangle text-3xl text-red-200"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h4 class="text-lg font-bold mb-4">월별 매출</h4>
+                        <canvas id="shop-revenue-chart"></canvas>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h4 class="text-lg font-bold mb-4">인기 상품</h4>
+                        <canvas id="top-products-chart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- My Shop Section -->
+            <section id="my-shop-section" class="p-6 hidden">
+                <h3 class="text-xl font-bold mb-6">내 샵 정보</h3>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <form id="shop-info-form">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">샵 이름</label>
+                                <input type="text" id="shop-name" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">연락처</label>
+                                <input type="tel" id="shop-contact" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">샵 설명</label>
+                                <textarea id="shop-description" rows="4" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"></textarea>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">주소</label>
+                                <input type="text" id="shop-address" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                            </div>
+                        </div>
+                        <div class="mt-6">
+                            <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition">
+                                <i class="fas fa-save"></i> 저장
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Products Section -->
+            <section id="products-section" class="p-6 hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold">상품 관리</h3>
+                    <button id="add-product-btn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">
+                        <i class="fas fa-plus"></i> 상품 추가
+                    </button>
+                </div>
+                <div class="bg-white rounded-lg shadow overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">이미지</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">상품명</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">가격</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">재고</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">작업</th>
+                            </tr>
+                        </thead>
+                        <tbody id="shop-products-table" class="divide-y divide-gray-200">
+                            <!-- Products will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Inventory Section -->
+            <section id="inventory-section" class="p-6 hidden">
+                <h3 class="text-xl font-bold mb-6">재고 관리</h3>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="mb-6">
+                        <h4 class="text-lg font-bold mb-4 text-red-600">재고 부족 상품</h4>
+                        <div id="low-stock-products" class="space-y-4">
+                            <!-- Low stock products will be loaded here -->
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-bold mb-4">모든 재고</h4>
+                        <div id="all-inventory" class="space-y-4">
+                            <!-- All inventory will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sales Section -->
+            <section id="sales-section" class="p-6 hidden">
+                <h3 class="text-xl font-bold mb-6">매출 통계</h3>
+                <div class="grid grid-cols-1 gap-6">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h4 class="text-lg font-bold mb-4">기간별 매출</h4>
+                        <div class="flex space-x-4 mb-4">
+                            <button class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">주간</button>
+                            <button class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition">월간</button>
+                            <button class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition">연간</button>
+                        </div>
+                        <canvas id="sales-trend-chart"></canvas>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h4 class="text-lg font-bold mb-4">판매 내역</h4>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">날짜</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">상품</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">수량</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">금액</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sales-history" class="divide-y divide-gray-200">
+                                    <!-- Sales history will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Product Form Modal -->
+    <div id="product-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold" id="product-modal-title">상품 추가</h2>
+                    <button id="close-product-modal" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+                <form id="product-form">
+                    <!-- Form fields will be added by JavaScript -->
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Core Systems (must be loaded first) -->
+    <script src="js/main.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/toast.js"></script>
+    <script src="js/modal.js"></script>
+    <script src="js/ui-components.js"></script>
+    <script src="js/image-upload.js"></script>
+    <script src="js/search-filter.js"></script>
+    <script src="js/charts.js"></script>
+    
+    <!-- Modal Templates -->
+    <script src="js/modal-templates.js"></script>
+    <script src="js/shop-modals.js"></script>
+    <script src="js/category-modals.js"></script>
+    <script src="js/review-modals.js"></script>
+    
+    <!-- Managers -->
+    <script src="js/auth.js"></script>
+    <script src="js/shop-manager.js"></script>
+    <script src="js/category-manager.js"></script>
+    <script src="js/review-manager.js"></script>
+</body>
+</html>

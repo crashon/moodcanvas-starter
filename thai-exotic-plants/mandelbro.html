@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Fractal Explorer — Audio Reactive Mandelbrot (HSV Palette)</title>
+<style>
+  html,body{height:100%;margin:0;background:#060812;color:#eaf;font-family:Inter,system-ui;overflow:hidden}
+  canvas{position:absolute;top:0;left:0;width:100%;height:100%;display:block;background:#000}
+  #controls{position:fixed;top:10px;left:10px;background:rgba(0,0,0,0.6);padding:10px;border-radius:8px;backdrop-filter:blur(8px)}
+  #controls label{display:block;margin-top:5px}
+</style>
+</head>
+<body>
+<canvas id="glCanvas"></canvas>
+<div id="controls">
+  <button id="micBtn">🎤 Use Microphone</button>
+  <label>FFT Bands: <span id="bandVal">8</span></label>
+  <input id="bandCount" type="range" min="4" max="64" value="8" />
+  <label>Bass Sensitivity</label><input id="bassSens" type="range" min="0" max="2" step="0.01" value="1" />
+  <label>Mid Sensitivity</label><input id="midSens" type="range" min="0" max="2" step="0.01" value="1" />
+  <label>Treble Sensitivity</label><input id="trebSens" type="range" min="0" max="2" step="0.01" value="1" />
+</div>
+<script>
+const canvas=document.getElementById('glCanvas');
+const gl=canvas.getContext('webgl');
+canvas.width=innerWidth;canvas.height=innerHeight;
+let micBtn=document.getElementById('micBtn');
+let bandSlider=document.getElementById('bandCount');
+let bandVal=document.getElementById('bandVal');
+let bassSens=document.getElementById('bassSens');
+let midSens=document.getElementById('midSens');
+let trebSens=document.getElementById('trebSens');
+let audioCtx, analyser, dataArray;
+let bandsCount=8;
+let bands=new Array(bandsCount).fill(0);
+
+bandSlider.addEventListener('input',()=>{bandsCount=parseInt(bandSlider.value);bandVal.textContent=bandsCount;bands=new Array(bandsCount).fill(0);});
+
+async function initMic(){
+  audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+  const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+  const source=audioCtx.createMediaStreamSource(stream);
+  analyser=audioCtx.createAnalyser();
+  analyser.fftSize=4096;
+  source.connect(analyser);
+  dataArray=new Uint8Array(analyser.frequencyBinCount);
+}
+
+function computeBands(){
+  if(!analyser)return bands;
+  analyser.getByteFrequencyData(dataArray);
+  const n=dataArray.length;
+  const bandSize=Math.floor(n/bandsCount);
+  for(let i=0;i<bandsCount;i++){
+    let sum=0;
+    for(let j=0;j<bandSize;j++) sum+=dataArray[i*bandSize+j]||0;
+    bands[i]=sum/bandSize/255;
+  }
+  // Split into bass/mid/treble sensitivity adjustments
+  const bassEnd=Math.floor(bandsCount/3);
+  const midEnd=Math.floor(2*bandsCount/3);
+  for(let i=0;i<bandsCount;i++){
+    if(i<bassEnd) bands[i]*=parseFloat(bassSens.value);
+    else if(i<midEnd) bands[i]*=parseFloat(midSens.value);
+    else bands[i]*=parseFloat(trebSens.value);
+  }
+  return bands;
+}
+
+// HSV to RGB utility for shader
+const vertexSrc=`attribute vec2 aPos;void main(){gl_Position=vec4(aPos,0.,1.);}`;
+const fragSrc=`precision highp float;uniform vec2 u_res;uniform float u_time;uniform float u_bands[64];
+vec3 hsv2rgb(vec3 c){
+  vec3 rgb=clamp(abs(mod(c.x*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0,0.0,1.0);
+  rgb=rgb*rgb*(3.0-2.0*rgb);
+  return c.z*mix(vec3(1.0),rgb,c.y);
+}
+void main(){
+  vec2 uv=(gl_FragCoord.xy/u_res)*2.0-1.0;
+  vec2 c=vec2(-0.745,0.186)+uv*1.5;
+  vec2 z=vec2(0.0);
+  float n=0.0;
+  for(int i=0;i<200;i++){
+    z=vec2(z.x*z.x-z.y*z.y,2.0*z.x*z.y)+c;
+    if(dot(z,z)>4.0)break;
+    n++;
+  }
+  float baseHue=0.5+0.5*sin(u_time*0.2);
+  float bass=0.0,mid=0.0,treb=0.0;
+  for(int i=0;i<64;i++){
+    float fi=float(i)/64.0;
+    if(fi<0.33) bass+=u_bands[i];
+    else if(fi<0.66) mid+=u_bands[i];
+    else treb+=u_bands[i];
+  }
+  bass/=21.0;mid/=21.0;treb/=21.0;
+  float hue=mod(baseHue + bass*0.2 + mid*0.1 + treb*0.3,1.0);
+  float sat=0.7+0.3*sin(u_time*0.3+mid*2.0);
+  float val=smoothstep(0.0,100.0,n)*(0.6+0.4*treb);
+  vec3 col=hsv2rgb(vec3(hue,sat,val));
+  gl_FragColor=vec4(col,1.0);
+}`;
+
+function compileShader(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s;}
+const vs=compileShader(gl.VERTEX_SHADER,vertexSrc);
+const fs=compileShader(gl.FRAGMENT_SHADER,fragSrc);
+const prog=gl.createProgram();gl.attachShader(prog,vs);gl.attachShader(prog,fs);gl.linkProgram(prog);if(!gl.getProgramParameter(prog,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(prog));gl.useProgram(prog);
+
+const verts=new Float32Array([-1,-1,1,-1,-1,1,1,1]);
+const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,verts,gl.STATIC_DRAW);
+const loc=gl.getAttribLocation(prog,'aPos');gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+const uRes=gl.getUniformLocation(prog,'u_res');
+const uTime=gl.getUniformLocation(prog,'u_time');
+const uBands=gl.getUniformLocation(prog,'u_bands');
+
+function render(t){
+  gl.viewport(0,0,gl.drawingBufferWidth,gl.drawingBufferHeight);
+  gl.uniform2f(uRes,gl.drawingBufferWidth,gl.drawingBufferHeight);
+  gl.uniform1f(uTime,t*0.001);
+  computeBands();
+  gl.uniform1fv(uBands,bands);
+  gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+  requestAnimationFrame(render);
+}
+requestAnimationFrame(render);
+
+micBtn.addEventListener('click',async()=>{
+  try{await initMic();micBtn.textContent='Mic: On';}
+  catch(e){alert('Mic error:'+e.message);}
+});
+</script>
+</body>
+</html>
